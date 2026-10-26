@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reward Data Analysis | Daniel Van Blerk</title>
+<style>
+:root{--ink:#2e3a46;--mute:#68757f;--paper:#f9fbfc;--card:#fff;--line:#e4eaee;--a:#6aa6c4;--b:#b8741f;--f:#c4a2d6;--m:#7fb8d6}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:920px;margin:0 auto;padding:44px 20px 72px}
+h1,h2{font-family:Georgia,"Times New Roman",serif;line-height:1.25}
+h1{font-size:2.3rem;margin:0 0 12px;max-width:24ch}
+h2{font-size:1.35rem;margin:    48px 0 6px}
+p{max-width:66ch}.lead{font-size:1.05rem;color:var(--mute)}.mute{color:var(--mute);font-size:.9rem}
+.note{border-left:3px solid var(--b);background:var(--card);padding:10px 16px;margin:22px 0;max-width:70ch;font-size:.92rem}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:24px 0}
+.kpi{background:var(--card);border:1px solid var(--line);padding:14px 16px;border-radius:4px}
+.kpi b{display:block;font:700 1.6rem Georgia,serif}.kpi span{font-size:.85rem;color:var(--mute)}
+.box{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:16px;margin-top:12px;overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.9rem;font-variant-numeric:tabular-nums}
+th,td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--line)}th:first-child,td:first-child,.l{text-align:left}
+th{font-weight:600}.look{color:var(--b);font-weight:600}
+.legend{display:flex;gap:18px;font-size:.85rem;margin-bottom:6px}.legend i{display:inline-block;width:12px;height:12px;margin-right:6px}
+input[type=range]{width:340px;max-width:100%;accent-color:var(--a)}
+svg text{fill:var(--ink);font:12px system-ui,sans-serif}
+ul{max-width:66ch;padding-left:20px}
+a:focus,input:focus{outline:3px solid var(--b);outline-offset:2px}
+</style>
+</head>
+<body>
+<main>
+<p class="mute">A Worked Example For The Total Rewards Analyst Role · Daniel Van Blerk</p>
+<h1>Checking The Data, Comparing Pay & Planning The Budget</h1>
+<p class="lead">Organisations can change shape and structure, and pay transparency expectations are arriving at different speeds across Europe. In both cases the groundwork is quite similar with the groundwork being: reliable data, comparisons that are fair, and a budget that holds together. This worked example walks through each step, at a modest scale.</p>
+<div class="note"><b>About The Data Used.</b> The data used below is synthetic. The dataset consists of 480 employees, 6 grades, 3 job families, generated with a fixed seed. No real employee data is used. The next step would be to calibrate the spread to public figures (see section 5). The 5% review line is a screening level only, based on the EU Pay Transparency Directive, and would need checking against current national rules.</div>
+<div class="kpis" id="kpis"></div>
+
+<h2>1. Check The Data, Especially After a Restructure</h2>
+<p>When teams and positions move, records tend to drift. A few simple rules catch most of it (see table below). Flagged records are left out of the figures below and passed back to whoever owns them.</p>
+<div class="box"><table id="audit"></table></div>
+
+<h2>2. Where pay sits within each grade</h2>
+<p>Compa-ratio is salary divided by the grade midpoint, so 1.00 means paid at the midpoint. Staying within 0.90–1.10 is a common rule of thumb. Comparing groups on compa-ratio keeps the comparison within the same level of work.</p>
+<div class="box"><div class="legend"><span><i style="background:var(--f)"></i>Women</span><span><i style="background:var(--m)"></i>Men</span></div><div id="chart"></div></div>
+
+<h2>3. Comparing pay by job family, within grade</h2>
+<p>The Directive looks at groups doing work of equal value, so grade alone may not be justified. Here the comparison is made per job family. Groups with fewer than 10 people on either side are marked as too small to judge, since small numbers move a lot on their own.</p>
+<div class="box"><table id="gap"></table></div>
+<p id="gaptext"></p>
+
+<h2>4. A merit budget that fits a tight year</h2>
+<p>With budgets under some pressure, it helps to see where a smaller pool goes before it is agreed. Choose a pool; the matrix is scaled so the total cost matches. Stronger performers lower in range receive more, and those already above 1.10 receive less.</p>
+<div class="box">
+<label for="pool"><b>Merit pool:</b> <span id="poolv"></span> of payroll</label><br>
+<input id="pool" type="range" min="1" max="5" step="0.1" value="2.5">
+<div class="kpis" id="mk" style="margin-bottom:8px"></div>
+<table id="matrix"></table>
+<p class="mute">Cells show the % increase after scaling. Rating 4 is the highest.</p>
+</div>
+
+<h2>5. What would make this more real</h2>
+<ul>
+<li><b>Public benchmarks.</b> The UK Gender Pay Gap Service, Statistics Sweden and Eurostat earnings data could set realistic pay spreads and gap sizes.</li>
+<li><b>Data owners.</b> A short agreement on who fixes each flagged record, and by when.</li>
+<li><b>Local specialists.</b> Rules differ by country, so legal and HR colleagues would confirm thresholds and timing before anything is relied on.</li>
+<li><b>Tooling.</b> In practice this runs on HRIS exports, with Power Query for cleaning, Power Pivot for the model and Power BI for the view. That is the stack I use day to day, and SQL for checks such as duplicate IDs.</li>
+</ul>
+<p class="mute">This worked example was purposefully kept small. Happy to talk through any part and am willing to learn where to improve.</p>
+</main>
+<script>
+let s=20260;const R=()=>(s=(s*1664525+1013904223)%4294967296)/4294967296;
+const G=[{g:"G1",mid:32e3},{g:"G2",mid:42e3},{g:"G3",mid:55e3},{g:"G4",mid:72e3},{g:"G5",mid:95e3},{g:"G6",mid:125e3}];
+const FAM=["Finance & Operations","Technology","Product & Design"];
+const pick=w=>{let r=R(),i=0;while(i<w.length-1&&r>w[i]){r-=w[i];i++}return i};
+let emp=[];
+for(let i=0;i<480;i++){
+ const gi=pick([.22,.25,.25,.16,.09,.03]),fm=pick([.4,.35,.25]);
+ const f=R()<(.64-gi*.05-(fm==1?.18:0)),ten=Math.floor(R()*14);
+ const cr0=.86+ten*.012+(R()-.5)*.2-(f?.012+gi*.006+(fm==1?.045:0):0);
+ emp.push({gi,g:G[gi].g,fm,f,ten,perf:1+pick([.07,.2,.5,.23]),sal:Math.round(G[gi].mid*cr0/100)*100,hire:true});
+}
+emp.forEach((e,i)=>e.id=i);
+for(let i=0;i<6;i++)emp[10+i*70].g=null;
+for(let i=0;i<4;i++)emp[25+i*90].dup=true;
+for(let i=0;i<9;i++){const e=emp[40+i*45];e.sal=Math.round(G[e.gi].mid*(i%2?1.55:.5)/100)*100}
+for(let i=0;i<5;i++)emp[60+i*80].hire=false;
+const cr=e=>e.sal/G[e.gi].mid,far=e=>cr(e)>1.4||cr(e)<.6;
+const bad=e=>!e.g||e.dup||!e.hire||far(e);
+const rules=[["Missing grade (position not yet mapped)",e=>!e.g],["Duplicate employee ID (for example after a move)",e=>e.dup],["Missing hire date",e=>!e.hire],["Salary far from grade midpoint (outside 60–140%)",e=>e.g&&!e.dup&&far(e)]];
+const ok=emp.filter(e=>!bad(e)),F=ok.filter(e=>e.f),M=ok.filter(e=>!e.f);
+const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0,pc=n=>(n*100).toFixed(1)+"%",f$=n=>"€"+Math.round(n).toLocaleString("en-US");
+const unadj=1-avg(F.map(e=>e.sal))/avg(M.map(e=>e.sal)),adj=1-avg(F.map(cr))/avg(M.map(cr));
+const kp=(a,b)=>`<div class="kpi"><b>${a}</b><span>${b}</span></div>`;
+document.getElementById("kpis").innerHTML=kp(ok.length+" of "+emp.length,"records pass the checks")+kp(avg(ok.map(cr)).toFixed(2),"average compa-ratio")+kp(pc(unadj),"pay gap, before considering grade")+kp(pc(adj),"gap in compa-ratio, within grade");
+// 1
+let h="<tr><th>Check</th><th>Records flagged</th></tr>";
+rules.forEach(r=>{const n=emp.filter(r[1]).length;h+=`<tr><td>${r[0]}</td><td class="${n?"look":""}">${n}</td></tr>`});
+h+=`<tr><td><b>Left out of the analysis</b></td><td><b>${emp.length-ok.length}</b></td></tr>`;
+document.getElementById("audit").innerHTML=h;
+// 2
+const W2=Math.max(560,Math.min(900,document.documentElement.clientWidth-70)),H=230,pl=40,gw=(W2-pl-10)/6;
+const y=v=>H-30-(v-.7)/.6*(H-50);
+let svg=`<svg viewBox="0 0 ${W2} ${H}" width="100%" role="img" aria-label="Average compa-ratio by grade and gender"><rect x="${pl}" y="${y(1.1)}" width="${W2-pl-10}" height="${y(.9)-y(1.1)}" fill="var(--a)" opacity=".12"/>`;
+[.8,.9,1,1.1,1.2].forEach(t=>svg+=`<text x="${pl-6}" y="${y(t)+4}" text-anchor="end">${t.toFixed(2)}</text><line x1="${pl}" x2="${W2-10}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)"/>`);
+G.forEach((g,i)=>{
+ const a=avg(ok.filter(e=>e.g===g.g&&e.f).map(cr)),b=avg(ok.filter(e=>e.g===g.g&&!e.f).map(cr)),x=pl+i*gw+gw*.2,w=gw*.28;
+ svg+=`<rect x="${x}" y="${y(a)}" width="${w}" height="${y(.7)-y(a)}" fill="var(--f)"/><rect x="${x+w+3}" y="${y(b)}" width="${w}" height="${y(.7)-y(b)}" fill="var(--m)"/><text x="${x+w}" y="${H-10}" text-anchor="middle">${g.g}</text><text x="${x+w/2}" y="${y(a)-4}" text-anchor="middle" font-size="10">${a.toFixed(2)}</text><text x="${x+w*1.5+3}" y="${y(b)-4}" text-anchor="middle" font-size="10">${b.toFixed(2)}</text>`;
+});
+document.getElementById("chart").innerHTML=svg+"</svg>";
+// 3
+let t="<tr><th>Job family</th><th>Women</th><th>Men</th><th>Compa-ratio W</th><th>Compa-ratio M</th><th>Gap</th><th class='l'>Status</th></tr>",look=[],small=0;
+FAM.forEach((n,i)=>{
+ const a=F.filter(e=>e.fm==i),b=M.filter(e=>e.fm==i),ca=avg(a.map(cr)),cb=avg(b.map(cr)),gap=1-ca/cb;
+ const tiny=a.length<10||b.length<10;let st=tiny?"Too few to judge":Math.abs(gap)>.05?"Worth a closer look":"Within 5%";
+ if(tiny)small++;else if(Math.abs(gap)>.05)look.push(n+" ("+pc(gap)+")");
+ t+=`<tr><td>${n}</td><td>${a.length}</td><td>${b.length}</td><td>${ca.toFixed(3)}</td><td>${cb.toFixed(3)}</td><td>${pc(gap)}</td><td class="l ${st[0]=="W"?"look":""}">${st}</td></tr>`;
+});
+document.getElementById("gap").innerHTML=t;
+document.getElementById("gaptext").innerHTML=`The gap of ${pc(unadj)} before considering grade is largely about where women and men sit in the organisation. Within grade it is ${pc(adj)}. ${look.length?"One area is worth a closer look: "+look.join(", ")+". That would be a sensible place to check tenure, performance and role content before drawing conclusions.":"No job family sits above the 5% line."}`;
+// 4
+const base=[[0,0,0,0],[3,2.5,2,0],[4.5,3.5,3,2],[6,5,4,3]],band=c=>c<.9?0:c<1?1:c<1.1?2:3,labs=["&lt; 0.90","0.90–1.00","1.00–1.10","&gt; 1.10"];
+const payroll=ok.reduce((a,e)=>a+e.sal,0),raw=ok.reduce((a,e)=>a+e.sal*base[e.perf-1][band(cr(e))]/100,0);
+function run(){
+ const p=+document.getElementById("pool").value;document.getElementById("poolv").textContent=p.toFixed(1)+"%";
+ const k=p/100*payroll/raw;let over=0,ns=0;
+ ok.forEach(e=>{const n=e.sal*(1+base[e.perf-1][band(cr(e))]*k/100);ns+=n;if(n/G[e.gi].mid>1.2)over++});
+ document.getElementById("mk").innerHTML=kp(f$(p/100*payroll),"annual cost of the pool")+kp((ns/ok.reduce((a,e)=>a+G[e.gi].mid,0)).toFixed(3),"average compa-ratio afterwards")+kp(over,"people above 1.20 afterwards");
+ let m="<tr><th>Rating \\ compa-ratio</th>"+labs.map(l=>`<th>${l}</th>`).join("")+"</tr>";
+ for(let r=3;r>=0;r--)m+=`<tr><td>${r+1}</td>`+base[r].map(v=>`<td>${(v*k).toFixed(1)}%</td>`).join("")+"</tr>";
+ const c=[0,0,0,0];ok.forEach(e=>c[band(cr(e))]++);
+ m+=`<tr><td class="mute">People in band</td>${c.map(x=>`<td class="mute">${x}</td>`).join("")}</tr>`;
+ document.getElementById("matrix").innerHTML=m;
+}
+document.getElementById("pool").addEventListener("input",run);run();
+</script>
+</body>
+</html>
